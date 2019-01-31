@@ -89,6 +89,15 @@ class Evaluate(keras.callbacks.Callback):
             summary_value = summary.value.add()
             summary_value.simple_value = self.mean_ap
             summary_value.tag = "mAP"
+
+            precision_value = summary.value.add()
+            precision_value.simple_value = self.precision
+            precision_value.tag = "Precision"
+
+            recall_value = summary.value.add()
+            recall_value.simple_value = self.recall
+            recall_value.tag = "Recall"
+
             self.tensorboard.writer.add_summary(summary, epoch)
 
         logs['mAP'] = self.mean_ap
