@@ -6,9 +6,9 @@ def compute_contains(detections, annotations):
     Parameters
     ----------
     detections: list
-        Contains detections in the form of a bounding box with its TBLR coordinates
+        Contains detections in the form of a bounding box with its TL and BR coordinates
     annotations: list
-        Contains annotations in the form of a bounding box with its TBLR coordinates
+        Contains annotations in the form of a bounding box with its TL and BR coordinates
 
     Returns
     -------
