@@ -3,12 +3,17 @@ import numpy as np
 
 def compute_contains(detections, annotations):
     """
-    Args
-        a: (d, 4) ndarray of float
-        b: (a, 4) ndarray of float
+    Parameters
+    ----------
+    detections: list
+        Contains detections in the form of a bounding box with its TBLR coordinates
+    annotations: list
+        Contains annotations in the form of a bounding box with its TBLR coordinates
 
     Returns
-        overlaps: (d, a) ndarray of overlap between detections and annotations
+    -------
+    overlaps: list
+        all annotations that are covered by a detection by >70%
     """
     num_detections = detections.shape[0]
     num_annotations = annotations.shape[0]
