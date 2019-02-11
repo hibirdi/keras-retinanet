@@ -195,7 +195,7 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
 
     callbacks.append(SGDRScheduler(
         min_lr = 1e-10,
-        max_lr = 1e-1,
+        max_lr = 1e-4,
         steps_per_epoch = args.steps,
         lr_decay = 0.9,
         cycle_length = 5,
@@ -461,7 +461,7 @@ def main(args=None):
         )
 
     # print model summary
-    print(model.summary())
+    #print(model.summary())
 
     # this lets the generator compute backbone layer shapes using the actual backbone model
     if 'vgg' in args.backbone or 'densenet' in args.backbone:

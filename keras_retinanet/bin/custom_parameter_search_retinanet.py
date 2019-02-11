@@ -25,7 +25,7 @@ from itertools import product
 import keras
 import keras.preprocessing.image
 import tensorflow as tf
-
+from keras.callbacks import CSVLogger
 # Allow relative imports when being executed as script.
 if __name__ == "__main__" and __package__ is None:
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -173,7 +173,7 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
             # use prediction model for evaluation
             evaluation = CocoEval(validation_generator, tensorboard=tensorboard_callback)
         else:
-            evaluation = Evaluate(validation_generator, tensorboard=tensorboard_callback, weighted_average=args.weighted_average)
+            evaluation = Evaluate(validation_generator, iou_threshold=args.iou_threshold, score_threshold=args.score_threshold, tensorboard=tensorboard_callback, weighted_average=args.weighted_average, arguments=args)
         evaluation = RedirectModel(evaluation, prediction_model)
         callbacks.append(evaluation)
 
@@ -184,7 +184,7 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
         checkpoint = keras.callbacks.ModelCheckpoint(
             os.path.join(
                 args.snapshot_path,
-                '{backbone}_{dataset_type}.h5'.format(backbone=args.backbone, dataset_type=args.dataset_type)
+                '{backbone}_{dataset_type}_steps{steps}epochs{epochs}.h5'.format(backbone=args.backbone, dataset_type=args.dataset_type, steps=args.steps, epochs=args.epochs)
             ),
             verbose=1,
             save_best_only=True,
@@ -196,7 +196,7 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
 
     callbacks.append(SGDRScheduler(
         min_lr = 1e-10,
-        max_lr = 1e-1,
+        max_lr = 1e-4,
         steps_per_epoch = args.steps,
         lr_decay = 0.9,
         cycle_length = 5,
@@ -395,13 +395,15 @@ def parse_args(args):
     group.add_argument('--weights',           help='Initialize the model with weights from a file.')
     group.add_argument('--no-weights',        help='Don\'t initialize the model with any weights.', dest='imagenet_weights', action='store_const', const=False)
 
-    # parser.add_argument('--backbone',         help='Backbone model used by retinanet.', default='resnet50', type=str)
-    # parser.add_argument('--batch-size',       help='Size of the batches.', default=1, type=int)
+    parser.add_argument("--iou-threshold",    help='IOU threshold', default=0.4, type=float)
+    parser.add_argument('--score-threshold',  help='Score threshold', default=0.5, type=float)
+    parser.add_argument('--backbone',         help='Backbone model used by retinanet.', default='resnet50,resnet101,resnet152', type=csv_list, required=True)
+    parser.add_argument('--batch-size',       help='Size of the batches.', default=1, type=int)
     parser.add_argument('--gpu',              help='Id of the GPU to use (as reported by nvidia-smi).')
     parser.add_argument('--multi-gpu',        help='Number of GPUs to use for parallel processing.', type=int, default=0)
     parser.add_argument('--multi-gpu-force',  help='Extra flag needed to enable (experimental) multi-gpu support.', action='store_true')
-    # parser.add_argument('--epochs',           help='Number of epochs to train.', type=int, default=50)
-    parser.add_argument('--steps',            help='Number of steps per epoch.', type=int, default=10000)
+    parser.add_argument('--epochs',           help='Number of epochs to train.', type=csv_list, default='10,11,12', required=True)
+    parser.add_argument('--steps',            help='Number of steps per epoch.', type=csv_list, default='5,10', required=True)
     parser.add_argument('--snapshot-path',    help='Path to store snapshots of models during training (defaults to \'./snapshots\')', default='./snapshots')
     parser.add_argument('--tensorboard-dir',  help='Log directory for Tensorboard output', default='./logs')
     parser.add_argument('--no-snapshots',     help='Disable saving snapshots.', dest='snapshots', action='store_false')
@@ -412,11 +414,6 @@ def parse_args(args):
     parser.add_argument('--image-max-side',   help='Rescale the image if the largest side is larger than max_side.', type=int, default=1333)
     parser.add_argument('--config',           help='Path to a configuration parameters .ini file.')
     parser.add_argument('--weighted-average', help='Compute the mAP using the weighted average of precisions among classes.', action='store_true')
-
-    param_search_parser = subparsers.add_parser('param_search')
-    param_search_parser.add_argument('--backbone', type=csv_list, required=True, default='resnet50,resnet101,resnet152')
-    param_search_parser.add_argument('--epochs', type=csv_list, required=True, default='1,2,3')
-    param_search_parser.add_argument('--batch-size', type=csv_list, required=True, default='16,32,64')
 
     return check_args(parser.parse_args(args))
 
@@ -442,7 +439,7 @@ def main(args=None):
     p = {
         'backbone': args.backbone,
         'epochs': args.epochs,
-        'batch_size': args.batch_size
+        'steps': args.steps
     }
 
     sorted_param = sorted(p)
@@ -451,8 +448,8 @@ def main(args=None):
     for param_combi in param_combinations:
         args.backbone = str(param_combi['backbone'])
         args.epochs = int(param_combi['epochs'])
-        args.batch_size = int(param_combi['batch_size'])
-        print("ARGUMENTS TO SEARCH: {}".format(args))
+        args.steps = int(param_combi['steps'])
+        print("ARGUMENTS TO SEARCH: {}".format(param_combi.items()))
 
         # create object that stores backbone information
         backbone = models.backbone(args.backbone)
@@ -486,7 +483,7 @@ def main(args=None):
             )
 
         # print model summary
-        print(model.summary())
+        # print(model.summary())
 
         # this lets the generator compute backbone layer shapes using the actual backbone model
         if 'vgg' in args.backbone or 'densenet' in args.backbone:
