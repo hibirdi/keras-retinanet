@@ -25,6 +25,7 @@ import cv2
 import progressbar
 assert(callable(progressbar.progressbar)), "Using wrong progressbar module, install 'progressbar2' instead."
 
+from .compute_contains import compute_contains
 
 def _compute_ap(recall, precision):
     """ Compute the average precision, given the recall and precision curves.
@@ -198,14 +199,25 @@ def evaluate(
                     true_positives  = np.append(true_positives, 0)
                     continue
 
-                overlaps            = compute_overlap(np.expand_dims(d, axis=0), annotations)
-                assigned_annotation = np.argmax(overlaps, axis=1)
-                max_overlap         = overlaps[0, assigned_annotation]
+                overlaps              = compute_overlap(np.expand_dims(d, axis=0), annotations)
+                assigned_annotation   = np.argmax(overlaps, axis=1)
+                max_overlap           = overlaps[0, assigned_annotation]
+                contained_annotations = compute_contains(np.expand_dims(d, axis=0), annotations)
+
+                for contained in contained_annotations[0]:
+                    if contained in detected_annotations:
+                        continue
+                    else:
+                        false_positives = np.append(false_positives, 0)
+                        true_positives  = np.append(true_positives, 1)
+                        detected_annotations.append(assigned_annotation)
 
                 if max_overlap >= iou_threshold and assigned_annotation not in detected_annotations:
                     false_positives = np.append(false_positives, 0)
                     true_positives  = np.append(true_positives, 1)
                     detected_annotations.append(assigned_annotation)
+                elif max_overlap >= iou_threshold and assigned_annotation in detected_annotations:
+                    continue
                 else:
                     false_positives = np.append(false_positives, 1)
                     true_positives  = np.append(true_positives, 0)
