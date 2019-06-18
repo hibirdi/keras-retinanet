@@ -62,7 +62,7 @@ class Evaluate(keras.callbacks.Callback):
         logs = logs or {}
 
         # run evaluation
-        average_precisions, recalls, precisions = evaluate(
+        average_precisions = evaluate(
             self.generator,
             self.model,
             iou_threshold=self.iou_threshold,
@@ -70,15 +70,6 @@ class Evaluate(keras.callbacks.Callback):
             max_detections=self.max_detections,
             save_path=self.save_path
         )
-
-        if recalls.shape[-1]:
-            recall = recalls[-1]
-        else:
-            recall = 0
-        if precisions.shape[-1]:
-            precision = precisions[-1]
-        else:
-            precision = 0
 
         # compute per class average precision
         total_instances = []
@@ -89,7 +80,6 @@ class Evaluate(keras.callbacks.Callback):
                       self.generator.label_to_name(label), 'with average precision: {:.4f}'.format(average_precision))
             total_instances.append(num_annotations)
             precisions.append(average_precision)
-
         if self.weighted_average:
             self.mean_ap = sum([a * b for a, b in zip(total_instances, precisions)]) / sum(total_instances)
         else:
@@ -101,30 +91,9 @@ class Evaluate(keras.callbacks.Callback):
             summary_value = summary.value.add()
             summary_value.simple_value = self.mean_ap
             summary_value.tag = "mAP"
-
-            precision_value = summary.value.add()
-            precision_value.simple_value = precision
-            precision_value.tag = "Precision"
-
-            recall_value = summary.value.add()
-            recall_value.simple_value = recall
-            recall_value.tag = "Recall"
-            
             self.tensorboard.writer.add_summary(summary, epoch)
 
         logs['mAP'] = self.mean_ap
-        logs['Precision'] = precision
-        logs['Recall'] = recall
-
-        epoch_result = [logs['classification_loss'], logs['regression_loss'], logs['loss'], self.mean_ap, precision, recall]
-        epoch_metadata = [datetime.datetime.now(), epoch]
-
-        if self.args:
-            epoch_metadata+=[self.args.batch_size, self.args.steps, self.args.backbone]
-
-        with open("training_epoch_results.csv", "a") as trainlog:
-            trainlog.write("{}\n".format(",".join(map(str, epoch_metadata+epoch_result))))
-        print("LOGS: {}".format(logs))
 
         if self.verbose == 1:
             print('mAP: {:.4f}'.format(self.mean_ap))

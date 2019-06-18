@@ -158,7 +158,7 @@ def main(args=None):
         from ..utils.coco_eval import evaluate_coco
         evaluate_coco(generator, model, args.score_threshold)
     else:
-        average_precisions, recalls, precisions = evaluate(
+        average_precisions = evaluate(
             generator,
             model,
             iou_threshold=args.iou_threshold,
