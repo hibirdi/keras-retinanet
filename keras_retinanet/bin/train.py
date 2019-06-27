@@ -231,6 +231,8 @@ def create_callbacks(
         save_dir=".",
     )
 
+    callbacks.append(lr_callback)
+
     # callbacks.append(SGDRScheduler(
     #     min_lr = 1e-10,
     #     max_lr = 1e-4,
