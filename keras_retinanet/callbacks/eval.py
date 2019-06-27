@@ -70,7 +70,7 @@ class Evaluate(keras.callbacks.Callback):
             max_detections=self.max_detections,
             save_path=self.save_path
         )
-
+        """
         if recalls.shape[-1]:
             recall = recalls[-1]
         else:
@@ -79,6 +79,9 @@ class Evaluate(keras.callbacks.Callback):
             precision = precisions[-1]
         else:
             precision = 0
+        """
+        recall = 0
+        precision = 0
 
         # compute per class average precision
         total_instances = []
