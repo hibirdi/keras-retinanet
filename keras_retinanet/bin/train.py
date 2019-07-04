@@ -238,21 +238,27 @@ def create_callbacks(
     # callbacks.append(lr_callback)
 
     sgdr_callback = SGDRScheduler(
-        min_lr = 1e-10,
-        max_lr = 1e-4,
-        steps_per_epoch = args.steps,
-        lr_decay = 0.9,
-        cycle_length = 5,
-        mult_factor = 1.5
+        min_lr=1e-10,
+        max_lr=1e-4,
+        steps_per_epoch=args.steps,
+        lr_decay=0.9,
+        cycle_length=5,
+        mult_factor=1.5,
     )
     # Uncomment to use SGDR with restarts
-    # callbacks.append(sgdr_callback)
+    callbacks.append(sgdr_callback)
 
-    lr_manager = OneCycleLR(0.004,
-                        end_percentage=0.1, scale_percentage=None,
-                        maximum_momentum=0.95, minimum_momentum=0.85)
+    MAX_LR = 0.004
+    one_cycle_callback = OneCycleLR(
+        MAX_LR,
+        end_percentage=0.1,
+        scale_percentage=None,
+        maximum_momentum=0.95,
+        minimum_momentum=0.85,
+    )
 
-    callbacks.append(lr_manager)
+    # Uncomment to use 1cycle policy
+    # callbacks.append(one_cycle_callback)
 
     return callbacks
 
