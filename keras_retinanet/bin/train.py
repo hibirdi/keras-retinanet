@@ -221,26 +221,38 @@ def create_callbacks(
         checkpoint = RedirectModel(checkpoint, model)
         callbacks.append(checkpoint)
 
+    # Hardcoded until we figure out how to pass these along as variables
+    NUM_TRAINING_EXAMPLES = 4581
+    BATCH_SIZE = 16
+
     lr_callback = LRFinder(
-        6331,
-        args.batch_size,
-        1e-5,
-        1e-2,
-        # validation_data=(X_val, Y_val),
+        NUM_TRAINING_EXAMPLES,
+        BATCH_SIZE,
+        minimum_lr=1e-3,
+        maximum_lr=1e-2,
         lr_scale="exp",
-        save_dir=".",
+        loss_smoothing_beta=0.90,
+        save_dir="/notebooks/",
     )
+    # Uncomment to run LR finder
+    # callbacks.append(lr_callback)
 
-    callbacks.append(lr_callback)
+    sgdr_callback = SGDRScheduler(
+        min_lr = 1e-10,
+        max_lr = 1e-4,
+        steps_per_epoch = args.steps,
+        lr_decay = 0.9,
+        cycle_length = 5,
+        mult_factor = 1.5
+    )
+    # Uncomment to use SGDR with restarts
+    # callbacks.append(sgdr_callback)
 
-    # callbacks.append(SGDRScheduler(
-    #     min_lr = 1e-10,
-    #     max_lr = 1e-4,
-    #     steps_per_epoch = args.steps,
-    #     lr_decay = 0.9,
-    #     cycle_length = 5,
-    #     mult_factor = 1.5
-    # ))
+    lr_manager = OneCycleLR(0.004,
+                        end_percentage=0.1, scale_percentage=None,
+                        maximum_momentum=0.95, minimum_momentum=0.85)
+
+    callbacks.append(lr_manager)
 
     return callbacks
 

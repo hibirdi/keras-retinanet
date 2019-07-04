@@ -144,7 +144,8 @@ class OneCycleLR(Callback):
 
     def on_train_begin(self, logs={}):
         logs = logs or {}
-
+        self.params['batch_size'] = 32
+        self.params['samples'] = 4581
         self.epochs = self.params['epochs']
         self.batch_size = self.params['batch_size']
         self.samples = self.params['samples']
@@ -213,7 +214,7 @@ class LRFinder(Callback):
                  lr_scale='exp',
                  validation_data=None,
                  validation_sample_rate=5,
-                 stopping_criterion_factor=4.,
+                 stopping_criterion_factor=1e10,
                  loss_smoothing_beta=0.98,
                  save_dir=None,
                  verbose=True):
@@ -362,7 +363,9 @@ class LRFinder(Callback):
             values = self.model.evaluate(x, y, batch_size=self.batch_size, verbose=False)
             loss = values[0]
         else:
-            loss = logs['loss']
+            # Replaced loss for keras-retinanet
+            loss = logs['classification_loss']
+            # loss = loggs['loss']
 
         # smooth the loss value and bias correct
         running_loss = self.loss_smoothing_beta * loss + (
